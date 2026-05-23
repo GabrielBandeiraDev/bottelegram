@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 .env
 posted_links.txt
+posted_registry.txt
 .python-version
