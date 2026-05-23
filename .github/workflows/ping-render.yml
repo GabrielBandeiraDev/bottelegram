@@ -2,7 +2,7 @@ name: Keep Render Alive
 
 on:
   schedule:
-    - cron: "*/10 * * * *"  # a cada 10 minutos
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -13,4 +13,12 @@ jobs:
       - name: Ping Render Health
         run: |
           echo "Pinging Render..."
-          curl -s -o /dev/null -w "%{http_code}" https://bottelegram-4x4n.onrender.com/health
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://bottelegram-4x4n.onrender.com/health)
+          echo "Response: $RESPONSE"
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Health check failed!"
+            exit 1
+          else
+            echo "✅ Bot alive"
+          fi
