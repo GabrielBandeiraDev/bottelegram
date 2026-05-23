@@ -21,6 +21,7 @@ MAX_NEWS_PER_CYCLE = int(os.getenv("MAX_NEWS_PER_CYCLE", "6"))
 MESSAGE_DELAY = float(os.getenv("MESSAGE_DELAY", "4"))
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "300"))
 POSTED_FILE = Path(os.getenv("POSTED_FILE", "posted_registry.txt"))
+HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "10000"))
 
 bot: Bot | None = None
@@ -248,7 +249,8 @@ async def bot_loop():
 
     while True:
         try:
-            news = fetch_news()
+            loop = asyncio.get_running_loop()
+            news = await loop.run_in_executor(None, fetch_news)
 
             if news:
                 print(f"Publicando {len(news[:MAX_NEWS_PER_CYCLE])} notícia(s)...")
@@ -268,27 +270,22 @@ async def health_handler(_request):
     return web.Response(text="ok", content_type="text/plain")
 
 
-async def start_web_server():
+async def on_startup(_app):
+    print(f"Porta {PORT} aberta — /health pronto")
+    if BOT_TOKEN:
+        asyncio.create_task(bot_loop())
+    else:
+        print("AVISO: BOT_TOKEN ausente — só health check ativo")
+
+
+def create_app():
     app = web.Application()
     app.router.add_get("/", health_handler)
     app.router.add_get("/health", health_handler)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
-    await site.start()
-    print(f"Servidor HTTP em 0.0.0.0:{PORT} (/health)")
-
-
-async def main():
-    await start_web_server()
-    asyncio.create_task(bot_loop())
-    await asyncio.Event().wait()
+    app.on_startup.append(on_startup)
+    return app
 
 
 if __name__ == "__main__":
-    if not BOT_TOKEN:
-        print("Defina BOT_TOKEN no ambiente.")
-        raise SystemExit(1)
-
-    asyncio.run(main())
+    print(f"Iniciando em {HOST}:{PORT}...")
+    web.run_app(create_app(), host=HOST, port=PORT)
