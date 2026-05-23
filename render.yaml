@@ -1,0 +1,17 @@
+services:
+  - type: worker
+    name: bot-telegram
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: GROUP_ID
+        sync: false
+      - key: MAX_NEWS_PER_CYCLE
+        value: "6"
+      - key: MESSAGE_DELAY
+        value: "4"
+      - key: POLL_INTERVAL
+        value: "300"
